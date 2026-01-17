@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       tier: 'all-200',
       message: `Daily quotes updated for ${results.quotes.success} ETFs`,
       results: {
-        quotes: `${results.quotes.success}/${results.quotes.symbols}`,
+        quotes: `${results.quotes.success}/${results.symbols}`,
       },
       errors: results.quotes.errors.length > 0 ? results.quotes.errors : undefined,
       duration: `${duration}ms`,
