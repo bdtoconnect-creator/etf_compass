@@ -216,6 +216,8 @@ function getETFName(symbol: string): string {
 /**
  * GET /api/cron/fetch-data
  * Vercel Cron endpoint - runs every 30 minutes
+ * Query params:
+ *   - force=true: Bypass market hours check (for testing)
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -231,13 +233,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 2. Check if market is open
-  if (!isMarketOpen()) {
+  // 2. Check if market is open (unless force=true)
+  const { searchParams } = new URL(request.url);
+  const forceRun = searchParams.get('force') === 'true';
+
+  if (!forceRun && !isMarketOpen()) {
     return NextResponse.json({
       status: 'skipped',
       reason: 'Market closed',
       message: getMarketStatusMessage(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      hint: 'Add ?force=true to bypass market hours check for testing'
     });
   }
 

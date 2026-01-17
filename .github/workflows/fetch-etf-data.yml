@@ -15,14 +15,8 @@ jobs:
     steps:
       - name: Fetch ETF Data
         run: |
-          curl -X GET \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data"
-      - name: Show Response
-        run: |
-          echo "Response:"
+          echo "Starting ETF data fetch..."
           curl -s -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data" | jq .
+            "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data?force=true" | jq .
