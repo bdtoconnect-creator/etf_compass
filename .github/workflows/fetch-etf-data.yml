@@ -18,4 +18,4 @@ jobs:
           curl -X GET \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            "${{ secrets.VERCEL_URL }}/api/cron/fetch-data"
+            "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data"
