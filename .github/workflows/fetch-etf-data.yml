@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Test Authentication
+        run: |
+          echo "Testing authentication..."
+          curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass.vercel.app/api/cron/test-auth" | jq .
+
       - name: Fetch ETF Data
         run: |
           echo "Starting ETF data fetch..."
