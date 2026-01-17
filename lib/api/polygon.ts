@@ -95,17 +95,14 @@ export class PolygonClient {
     const params = new URLSearchParams({
       adjusted: 'true',
       sort: query.sort || 'asc',
-      limit: (query.limit || 120).toString(),
+      limit: (query.limit || 50000).toString(),
     });
 
-    if (query.timespan) {
-      params.append('timespan', query.timespan);
-      if (query.multiplier) {
-        params.append('multiplier', query.multiplier.toString());
-      }
-    }
+    // Use day timespan by default, but allow override
+    const timespan = query.timespan || 'day';
+    const multiplier = query.multiplier || 1;
 
-    const url = `${POLYGON_BASE_URL}/aggs/ticker/${query.symbol}/range/1/hour/${query.startDate}/${query.endDate}?${params.toString()}`;
+    const url = `${POLYGON_BASE_URL}/aggs/ticker/${query.symbol}/range/${multiplier}/${timespan}/${query.startDate}/${query.endDate}?${params.toString()}`;
 
     const response = await this.fetchWithRetry(url);
 
