@@ -1,16 +1,20 @@
 // ============================================
 // CACHE CONFIGURATION
 // ============================================
-// 30-minute caching system for ETF market data
-// Fetches from Polygon.io every 30 minutes during market hours
-// Stores data locally and serves all dashboard requests from cache
+// Hybrid caching system for ETF market data
+// - Top 50 ETFs: Real-time updates every 30 min during market hours
+// - All 200 ETFs: Daily updates and on-demand fetching
+// Fetches from Polygon.io and stores locally
+
+import { TOP_50, ALL_200_ETFS } from '../etf-symbols';
 
 /**
  * Cache configuration constants
  */
 export const CACHE_CONFIG = {
-  // Time-to-live for cached data (35 minutes = 30 min fetch + 5 min grace)
-  TTL_MS: 35 * 60 * 1000,
+  // Time-to-live for cached data
+  TTL_MS: 35 * 60 * 1000, // 35 minutes (30 min fetch + 5 min grace)
+  DAILY_TTL_MS: 25 * 60 * 60 * 1000, // 25 hours for daily data
 
   // Market hours (Eastern Time - NYSE)
   MARKET_OPEN_HOUR: 8,   // 8 AM ET
@@ -31,24 +35,21 @@ export const CACHE_CONFIG = {
     '2025-12-25', // Christmas Day
   ] as string[],
 
-  // ETFs to track and cache
-  TRACKED_SYMBOLS: [
-    'VOO',   // Vanguard S&P 500
-    'QQQ',   // Invesco QQQ Trust
-    'SCHD',  // Schwab US Dividend Equity
-    'VTI',   // Vanguard Total Stock Market
-    'VGT',   // Vanguard Information Technology
-    'XLK',   // Technology Select Sector SPDR
-    'XLF',   // Financial Select Sector SPDR
-    'JEPQ',  // JPMorgan Nasdaq Equity Premium Income
-  ],
+  // ETF tiers
+  TOP_50_SYMBOLS: TOP_50,
+  ALL_200_SYMBOLS: ALL_200_ETFS,
 
   // Rate limiting to stay within Polygon free tier (5 requests/minute)
-  RATE_LIMIT_DELAY_MS: 12000, // 12 seconds between each symbol
+  RATE_LIMIT_DELAY_MS: 12000, // 12 seconds between each symbol (5 req/min)
+
+  // Batch sizes for processing
+  TOP_50_BATCH_SIZE: 10,     // Process 10 at a time for real-time
+  ALL_200_BATCH_SIZE: 10,    // Process 10 at a time for daily
 
   // Historical data settings
-  HISTORICAL_DAYS_FIRST_FETCH: 90, // 90 days for first fetch (reduced to avoid Vercel timeout)
-  HISTORICAL_DAYS_INCREMENTAL: 1, // 1 day for incremental updates
+  HISTORICAL_DAYS_REALTIME: 30,    // 30 days for top 50 (fast access)
+  HISTORICAL_DAYS_DAILY: 90,       // 90 days for all 200 (comprehensive)
+  HISTORICAL_DAYS_INCREMENTAL: 1,  // 1 day for incremental updates
 } as const;
 
 /**
