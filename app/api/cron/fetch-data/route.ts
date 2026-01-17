@@ -70,7 +70,7 @@ async function fetchHistorical(symbol: string, isFirstFetch: boolean): Promise<{
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(
-      startDate.getDate() - (isFirstFetch ? CACHE_CONFIG.HISTORICAL_DAYS_FIRST_FETCH : CACHE_CONFIG.HISTORICAL_DAYS_INCREMENTAL)
+      startDate.getDate() - (isFirstFetch ? CACHE_CONFIG.HISTORICAL_DAYS_DAILY : CACHE_CONFIG.HISTORICAL_DAYS_INCREMENTAL)
     );
 
     const aggregates = await polygon.getAggregates({

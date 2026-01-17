@@ -36,6 +36,7 @@ export const CACHE_CONFIG = {
   ] as string[],
 
   // ETF tiers
+  TRACKED_SYMBOLS: TOP_50, // Backward compatibility - uses top 50
   TOP_50_SYMBOLS: TOP_50,
   ALL_200_SYMBOLS: ALL_200_ETFS,
 
@@ -49,6 +50,7 @@ export const CACHE_CONFIG = {
   // Historical data settings
   HISTORICAL_DAYS_REALTIME: 30,    // 30 days for top 50 (fast access)
   HISTORICAL_DAYS_DAILY: 90,       // 90 days for all 200 (comprehensive)
+  HISTORICAL_DAYS_FIRST_FETCH: 90, // Backward compatibility - same as DAILY
   HISTORICAL_DAYS_INCREMENTAL: 1,  // 1 day for incremental updates
 } as const;
 
