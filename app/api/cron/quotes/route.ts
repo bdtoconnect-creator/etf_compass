@@ -87,10 +87,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  try {
-    // Use REAL_TIME_SYMBOLS (20 ETFs) to fit within 5-minute timeout
-    const symbolsToProcess = CACHE_CONFIG.REAL_TIME_SYMBOLS;
+  // Define symbols to process (accessible in catch block for error logging)
+  const symbolsToProcess = CACHE_CONFIG.REAL_TIME_SYMBOLS;
 
+  try {
     const results = {
       quotes: { success: 0, failed: 0, errors: [] as string[] },
       symbols: symbolsToProcess.length,
