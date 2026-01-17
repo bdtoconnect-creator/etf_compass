@@ -6,112 +6,106 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ETFGridProps {
+  tier?: 'top50' | 'all';
+  search?: string;
+  sector?: string;
   className?: string;
 }
 
-// Mock data - will be fetched from API
-const etfs = [
-  {
-    id: "1",
-    symbol: "VOO",
-    name: "Vanguard S&P 500",
-    category: "Market Cap Growth",
-    price: 428.12,
-    change: 1.24,
-    aiScore: 87,
-    signal: "Strong Buy",
-    riskLevel: "Low Risk",
-    sector: "Large Cap",
-  },
-  {
-    id: "2",
-    symbol: "QQQ",
-    name: "Invesco QQQ Trust",
-    category: "Nasdaq-100 Index",
-    price: 384.45,
-    change: 2.15,
-    aiScore: 82,
-    signal: "Buy",
-    riskLevel: "Med Risk",
-    sector: "Technology",
-  },
-  {
-    id: "3",
-    symbol: "BOTZ",
-    name: "Global X Robotics & AI",
-    category: "Artificial Intelligence",
-    price: 28.92,
-    change: -0.42,
-    aiScore: 58,
-    signal: "Hold",
-    riskLevel: "High Risk",
-    sector: "Technology",
-  },
-  {
-    id: "4",
-    symbol: "SCHD",
-    name: "Schwab US Dividend",
-    category: "Value Focused",
-    price: 74.18,
-    change: 0.88,
-    aiScore: 78,
-    signal: "Outperform",
-    riskLevel: "Low Risk",
-    sector: "Dividend",
-  },
-  {
-    id: "5",
-    symbol: "VTI",
-    name: "Vanguard Total Market",
-    category: "Broad Market",
-    price: 252.34,
-    change: 0.95,
-    aiScore: 75,
-    signal: "Buy",
-    riskLevel: "Low Risk",
-    sector: "Large Cap",
-  },
-  {
-    id: "6",
-    symbol: "VGT",
-    name: "Vanguard Info Tech",
-    category: "Technology",
-    price: 462.84,
-    change: 1.14,
-    aiScore: 72,
-    signal: "Buy",
-    riskLevel: "High Risk",
-    sector: "Technology",
-  },
-  {
-    id: "7",
-    symbol: "VHT",
-    name: "Vanguard Health Care",
-    category: "Healthcare",
-    price: 245.67,
-    change: 0.45,
-    aiScore: 68,
-    signal: "Hold",
-    riskLevel: "Med Risk",
-    sector: "Healthcare",
-  },
-  {
-    id: "8",
-    symbol: "VNQ",
-    name: "Vanguard Real Estate",
-    category: "Real Estate",
-    price: 98.23,
-    change: -0.23,
-    aiScore: 55,
-    signal: "Hold",
-    riskLevel: "Med Risk",
-    sector: "Real Estate",
-  },
-];
+interface ETF {
+  id: string;
+  symbol: string;
+  name: string;
+  category: string;
+  sector: string;
+  price: number;
+  change: number;
+  changeValue: number;
+  bid: number;
+  ask: number;
+  previousClose: number;
+  hasData: boolean;
+  fetchedAt?: string;
+}
 
-export function ETFGrid({ className }: ETFGridProps) {
+interface ETFListResponse {
+  etfs: ETF[];
+  sectors: string[];
+  total: number;
+  tier: string;
+}
+
+export function ETFGrid({ tier = 'top50', search, sector, className }: ETFGridProps) {
+  const [etfs, setEtfs] = useState<ETF[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchETFs() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams();
+        params.set('tier', tier);
+        if (search) params.set('search', search);
+        if (sector) params.set('sector', sector);
+
+        const response = await fetch(`/api/etf/list?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch ETFs');
+        }
+
+        const data: ETFListResponse = await response.json();
+        setEtfs(data.etfs);
+      } catch (err) {
+        console.error('Error fetching ETFs:', err);
+        setError('Failed to load ETFs');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchETFs();
+  }, [tier, search, sector]);
+
+  if (loading) {
+    return (
+      <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4", className)}>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+          <div key={i} className="h-[220px] rounded-xl border border-border bg-card animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-primary hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (etfs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-muted-foreground">No ETFs found matching your criteria</p>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4", className)}>
       {etfs.map((etf) => (
@@ -125,17 +119,13 @@ export function ETFGrid({ className }: ETFGridProps) {
                       variant="secondary"
                       className={cn(
                         "text-[10px] font-bold uppercase py-0.5 px-2",
-                        etf.signal === "Strong Buy" || etf.signal === "Buy" || etf.signal === "Outperform"
-                          ? "bg-primary/20 text-primary border-primary/30"
-                          : etf.signal === "Hold"
-                          ? "bg-amber-400/20 text-amber-400 border-amber-400/30"
-                          : "bg-red-400/20 text-red-400 border-red-400/30"
+                        etf.hasData ? "bg-primary/20 text-primary border-primary/30" : "bg-muted text-muted-foreground"
                       )}
                     >
-                      {etf.signal}
+                      {etf.hasData ? "Live" : "Pending"}
                     </Badge>
                     <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                      {etf.riskLevel}
+                      {etf.sector}
                     </Badge>
                   </div>
                   <h3 className="font-semibold text-sm leading-tight mt-1">{etf.name}</h3>
@@ -144,62 +134,64 @@ export function ETFGrid({ className }: ETFGridProps) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-sm">${etf.price.toFixed(2)}</p>
-                  <p
-                    className={cn(
-                      "text-xs font-medium",
-                      etf.change >= 0 ? "text-primary" : "text-destructive"
-                    )}
-                  >
-                    {etf.change >= 0 ? "+" : ""}
-                    {etf.change}%
-                  </p>
+                  {etf.hasData ? (
+                    <>
+                      <p className="font-bold text-sm">${etf.price.toFixed(2)}</p>
+                      <p
+                        className={cn(
+                          "text-xs font-medium",
+                          etf.change >= 0 ? "text-primary" : "text-destructive"
+                        )}
+                      >
+                        {etf.change >= 0 ? "+" : ""}
+                        {etf.change.toFixed(2)}%
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No data yet</p>
+                  )}
                 </div>
               </div>
 
               {/* Sparkline */}
-              <div className="h-10 my-2">
-                <svg
-                  viewBox="0 0 100 40"
-                  className="w-full h-full"
-                  preserveAspectRatio="none"
-                >
-                  <defs>
-                    <linearGradient id={`grid-gradient-${etf.symbol}`} x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#2dd2b7" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#2dd2b7" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d={generateSparkline(etf.change)}
-                    fill={`url(#grid-gradient-${etf.symbol})`}
-                  />
-                  <path
-                    d={generateSparkline(etf.change)}
-                    fill="none"
-                    stroke={etf.change >= 0 ? "#2dd2b7" : "#f87171"}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
+              {etf.hasData && (
+                <div className="h-10 my-2">
+                  <svg
+                    viewBox="0 0 100 40"
+                    className="w-full h-full"
+                    preserveAspectRatio="none"
+                  >
+                    <defs>
+                      <linearGradient id={`grid-gradient-${etf.symbol}`} x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor={etf.change >= 0 ? "#2dd2b7" : "#f87171"} stopOpacity="0.2" />
+                        <stop offset="100%" stopColor={etf.change >= 0 ? "#2dd2b7" : "#f87171"} stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d={generateSparkline(etf.change)}
+                      fill={`url(#grid-gradient-${etf.symbol})`}
+                    />
+                    <path
+                      d={generateSparkline(etf.change)}
+                      fill="none"
+                      stroke={etf.change >= 0 ? "#2dd2b7" : "#f87171"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              )}
 
               <div className="mt-auto flex items-center justify-between pt-2 border-t border-border/50">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">AI Score</span>
-                  <span
-                    className={cn(
-                      "text-sm font-bold",
-                      etf.aiScore >= 70 ? "text-primary" : etf.aiScore >= 50 ? "text-amber-400" : "text-red-400"
-                    )}
-                  >
-                    {etf.aiScore}
+                {etf.fetchedAt && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {getTimeAgo(new Date(etf.fetchedAt))}
                   </span>
-                </div>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
                 >
                   <ChevronRight className="size-4" />
                 </Button>
@@ -229,4 +221,13 @@ function generateSparkline(change: number): string {
   const strokePoints = points.join(" ");
 
   return strokePoints;
+}
+
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }

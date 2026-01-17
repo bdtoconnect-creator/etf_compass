@@ -6,23 +6,23 @@ import { Search, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export function ETFSearch() {
+interface ETFSearchProps {
+  onSearch?: (query: string) => void;
+}
+
+export function ETFSearch({ onSearch }: ETFSearchProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [value, setValue] = useState(searchParams.get("q") || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim()) {
-      router.push(`/explore?q=${encodeURIComponent(value.trim())}`);
-    } else {
-      router.push("/explore");
-    }
+    onSearch?.(value.trim());
   };
 
   const handleClear = () => {
     setValue("");
-    router.push("/explore");
+    onSearch?.("");
   };
 
   return (
