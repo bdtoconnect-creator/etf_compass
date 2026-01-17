@@ -47,7 +47,7 @@ export const CACHE_CONFIG = {
   RATE_LIMIT_DELAY_MS: 12000, // 12 seconds between each symbol
 
   // Historical data settings
-  HISTORICAL_DAYS_FIRST_FETCH: 730, // ~2 years for first fetch (Polygon free tier limit)
+  HISTORICAL_DAYS_FIRST_FETCH: 90, // 90 days for first fetch (reduced to avoid Vercel timeout)
   HISTORICAL_DAYS_INCREMENTAL: 1, // 1 day for incremental updates
 } as const;
 

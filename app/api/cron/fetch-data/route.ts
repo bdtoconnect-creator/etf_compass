@@ -258,30 +258,40 @@ export async function GET(request: NextRequest) {
     };
 
     // 4. Fetch data with rate limiting
-    for (let i = 0; i < CACHE_CONFIG.TRACKED_SYMBOLS.length; i++) {
-      const symbol = CACHE_CONFIG.TRACKED_SYMBOLS[i];
+    // Process in smaller batches to avoid timeout
+    const BATCH_SIZE = 3; // Process 3 symbols at a time
+    const totalBatches = Math.ceil(CACHE_CONFIG.TRACKED_SYMBOLS.length / BATCH_SIZE);
 
-      // Fetch quote (always get latest)
-      const quoteResult = await fetchQuote(symbol);
-      if (quoteResult.success) {
-        results.quotes.success++;
-      } else {
-        results.quotes.failed++;
-        if (quoteResult.error) results.quotes.errors.push(`${symbol}: ${quoteResult.error}`);
-      }
+    for (let batch = 0; batch < totalBatches; batch++) {
+      const startIdx = batch * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, CACHE_CONFIG.TRACKED_SYMBOLS.length);
+      const batchSymbols = CACHE_CONFIG.TRACKED_SYMBOLS.slice(startIdx, endIdx);
 
-      // Fetch historical (full or incremental based on firstFetch flag)
-      const histResult = await fetchHistorical(symbol, firstFetch);
-      if (histResult.success) {
-        results.historical.success++;
-      } else {
-        results.historical.failed++;
-        if (histResult.error) results.historical.errors.push(`${symbol}: ${histResult.error}`);
-      }
+      for (let i = 0; i < batchSymbols.length; i++) {
+        const symbol = batchSymbols[i];
 
-      // Rate limit delay between symbols (except last one)
-      if (i < CACHE_CONFIG.TRACKED_SYMBOLS.length - 1) {
-        await delay(CACHE_CONFIG.RATE_LIMIT_DELAY_MS);
+        // Fetch quote (always get latest)
+        const quoteResult = await fetchQuote(symbol);
+        if (quoteResult.success) {
+          results.quotes.success++;
+        } else {
+          results.quotes.failed++;
+          if (quoteResult.error) results.quotes.errors.push(`${symbol}: ${quoteResult.error}`);
+        }
+
+        // Fetch historical - use 90 days for first fetch to avoid timeout
+        const histResult = await fetchHistorical(symbol, firstFetch);
+        if (histResult.success) {
+          results.historical.success++;
+        } else {
+          results.historical.failed++;
+          if (histResult.error) results.historical.errors.push(`${symbol}: ${histResult.error}`);
+        }
+
+        // Rate limit delay between symbols (except last one)
+        if (i < batchSymbols.length - 1 || batch < totalBatches - 1) {
+          await delay(CACHE_CONFIG.RATE_LIMIT_DELAY_MS);
+        }
       }
     }
 
