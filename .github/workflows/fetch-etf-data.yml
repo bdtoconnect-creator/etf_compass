@@ -19,3 +19,10 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data"
+      - name: Show Response
+        run: |
+          echo "Response:"
+          curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass-hihrcv6gj-bdtoconnects-projects.vercel.app/api/cron/fetch-data" | jq .
