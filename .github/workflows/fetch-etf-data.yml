@@ -1,0 +1,21 @@
+name: Fetch ETF Data from Polygon.io
+
+on:
+  # Run every 30 minutes during market hours (8 AM - 6 PM ET, Mon-Fri)
+  schedule:
+    - cron: '0,30 8-18 * * 1-5'
+    # Runs at 8:00, 8:30, 9:00, ... 18:00, 18:30 ET on weekdays
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch ETF Data
+        run: |
+          curl -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.VERCEL_URL }}/api/cron/fetch-data"
