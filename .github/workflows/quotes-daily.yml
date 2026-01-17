@@ -1,0 +1,42 @@
+name: Daily Quotes (All 200 ETFs)
+
+on:
+  # Run once daily at 6 AM ET (before market opens)
+  schedule:
+    - cron: '0 6 * * 1-5'
+    # Runs at 6:00 AM ET on weekdays
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  fetch-daily-quotes:
+    runs-on: ubuntu-latest
+    # Set a longer timeout for fetching all 200 ETFs (~40 minutes)
+    timeout-minutes: 45
+
+    steps:
+      - name: Fetch Daily Quotes (All 200)
+        run: |
+          echo "Fetching daily quotes for all 200 ETFs..."
+          echo "This will take approximately 40 minutes due to rate limiting"
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass.vercel.app/api/cron/quotes-all?force=true")
+          echo "Response:"
+          echo "$response" | jq .
+
+      - name: Check Status
+        run: |
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass.vercel.app/api/cron/quotes-all?force=true")
+
+          status=$(echo "$response" | jq -r '.status')
+          if [ "$status" = "success" ]; then
+            echo "✅ Daily quotes fetched successfully"
+          else
+            echo "⚠️ Partial success or failure occurred"
+            echo "$response" | jq -r '.errors[]' 2>/dev/null || true
+          fi

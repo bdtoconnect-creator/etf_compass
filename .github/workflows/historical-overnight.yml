@@ -1,0 +1,48 @@
+name: Historical Data (All 200 ETFs)
+
+on:
+  # Run overnight at 2 AM ET (well before market opens)
+  schedule:
+    - cron: '0 2 * * 1-5'
+    # Runs at 2:00 AM ET on weekdays
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  fetch-historical:
+    runs-on: ubuntu-latest
+    # Set a longer timeout for fetching historical data (~40 minutes)
+    timeout-minutes: 45
+
+    steps:
+      - name: Fetch Historical Data (All 200)
+        run: |
+          echo "Fetching 90-day historical data for all 200 ETFs..."
+          echo "This will take approximately 40 minutes due to rate limiting"
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass.vercel.app/api/cron/historical?force=true")
+          echo "Response:"
+          echo "$response" | jq .
+
+      - name: Check Status
+        run: |
+          response=$(curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://etf-compass.vercel.app/api/cron/historical?force=true")
+
+          status=$(echo "$response" | jq -r '.status')
+          if [ "$status" = "success" ]; then
+            echo "✅ Historical data fetched successfully"
+            first_fetch=$(echo "$response" | jq -r '.isFirstFetch')
+            if [ "$first_fetch" = "true" ]; then
+              echo "📊 This was the first fetch - 90 days of historical data retrieved"
+            else
+              echo "📊 Incremental update - only latest data retrieved"
+            fi
+          else
+            echo "❌ Failed to fetch historical data"
+            exit 1
+          fi
