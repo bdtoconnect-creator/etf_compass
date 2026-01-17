@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
       message: `Historical data (${results.days} days) updated for ${results.historical.success} ETFs`,
       isFirstFetch: firstFetchOverall,
       results: {
-        historical: `${results.historical.success}/${results.historical.symbols}`,
+        historical: `${results.historical.success}/${results.symbols}`,
       },
       errors: results.historical.errors.length > 0 ? results.historical.errors : undefined,
       duration: `${duration}ms`,
