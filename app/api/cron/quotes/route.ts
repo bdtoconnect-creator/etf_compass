@@ -88,19 +88,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Use REAL_TIME_SYMBOLS (20 ETFs) to fit within 5-minute timeout
+    const symbolsToProcess = CACHE_CONFIG.REAL_TIME_SYMBOLS;
+
     const results = {
       quotes: { success: 0, failed: 0, errors: [] as string[] },
-      symbols: CACHE_CONFIG.TOP_50_SYMBOLS.length
+      symbols: symbolsToProcess.length,
+      tier: 'real-time' as const
     };
 
-    // 3. Process in batches of 10 to stay within timeout
+    // 3. Process all 20 symbols (fits in ~4 minutes with rate limiting)
     const batchSize = CACHE_CONFIG.TOP_50_BATCH_SIZE;
-    const totalBatches = Math.ceil(CACHE_CONFIG.TOP_50_SYMBOLS.length / batchSize);
+    const totalBatches = Math.ceil(symbolsToProcess.length / batchSize);
 
     for (let batch = 0; batch < totalBatches; batch++) {
       const startIdx = batch * batchSize;
-      const endIdx = Math.min(startIdx + batchSize, CACHE_CONFIG.TOP_50_SYMBOLS.length);
-      const batchSymbols = CACHE_CONFIG.TOP_50_SYMBOLS.slice(startIdx, endIdx);
+      const endIdx = Math.min(startIdx + batchSize, symbolsToProcess.length);
+      const batchSymbols = symbolsToProcess.slice(startIdx, endIdx);
 
       for (let i = 0; i < batchSymbols.length; i++) {
         const symbol = batchSymbols[i];
@@ -124,7 +128,7 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
     await prisma.marketDataFetchLog.create({
       data: {
-        etfSymbols: [...CACHE_CONFIG.TOP_50_SYMBOLS],
+        etfSymbols: [...symbolsToProcess],
         status: results.quotes.failed === 0 ? 'success' : 'partial',
         fetchCount: results.quotes.success,
         duration
@@ -133,10 +137,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       status: 'success',
-      tier: 'top-50',
-      message: `Real-time quotes updated for ${results.quotes.success} ETFs`,
+      tier: results.tier,
+      message: `Real-time quotes updated for ${results.quotes.success}/${results.symbols} ETFs`,
       results: {
         quotes: `${results.quotes.success}/${results.symbols}`,
+        processedIn: `${(duration / 1000).toFixed(1)}s`
       },
       errors: results.quotes.errors,
       duration: `${duration}ms`,
@@ -148,7 +153,7 @@ export async function GET(request: NextRequest) {
 
     await prisma.marketDataFetchLog.create({
       data: {
-        etfSymbols: [...CACHE_CONFIG.TOP_50_SYMBOLS],
+        etfSymbols: [...symbolsToProcess],
         status: 'failed',
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
         fetchCount: 0,

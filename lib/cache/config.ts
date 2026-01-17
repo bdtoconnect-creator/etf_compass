@@ -40,12 +40,18 @@ export const CACHE_CONFIG = {
   TOP_50_SYMBOLS: TOP_50,
   ALL_200_SYMBOLS: ALL_200_ETFS,
 
+  // Real-time updates: Only 20 most-traded ETFs (fits in 4 minutes with rate limiting)
+  // This avoids Vercel's 5-minute timeout
+  REAL_TIME_SYMBOLS: TOP_50.slice(0, 20),
+
   // Rate limiting to stay within Polygon free tier (5 requests/minute)
   RATE_LIMIT_DELAY_MS: 12000, // 12 seconds between each symbol (5 req/min)
 
   // Batch sizes for processing
-  TOP_50_BATCH_SIZE: 10,     // Process 10 at a time for real-time
-  ALL_200_BATCH_SIZE: 10,    // Process 10 at a time for daily
+  // Reduced to fit within Vercel Hobby's 5-minute timeout
+  // 20 ETFs × 12 seconds = 4 minutes (safe margin)
+  TOP_50_BATCH_SIZE: 20,     // Process 20 at a time for real-time (fits in 5 min)
+  ALL_200_BATCH_SIZE: 20,    // Process 20 at a time for daily (will need multiple runs)
 
   // Historical data settings
   HISTORICAL_DAYS_REALTIME: 30,    // 30 days for top 50 (fast access)

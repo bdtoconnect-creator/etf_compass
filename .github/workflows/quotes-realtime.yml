@@ -1,4 +1,4 @@
-name: Real-Time Quotes (Top 50 ETFs)
+name: Real-Time Quotes (Top 20 ETFs)
 
 on:
   # Run every 30 minutes during market hours (8 AM - 6 PM ET, Mon-Fri)
