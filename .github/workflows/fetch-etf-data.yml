@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debug Secret
+        run: |
+          echo "Secret exists: ${{ secrets.CRON_SECRET != '' }}"
+          echo "Secret length: ${{ secrets.CRON_SECRET }}"
+
       - name: Test Authentication
         run: |
           echo "Testing authentication..."
