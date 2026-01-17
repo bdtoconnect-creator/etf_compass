@@ -1,0 +1,325 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatar        String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Subscription tier: free, pro, premium
+  tier          String    @default("free")
+
+  // Relationships
+  portfolio     Portfolio?
+  watchlists    Watchlist[]
+  sessions      Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================
+// ETF DATA
+// ============================================
+
+model ETF {
+  id          String   @id @default(cuid())
+  symbol      String   @unique // VOO, QQQ, etc.
+  name        String   // Vanguard S&P 500
+  description String?
+  sector      String?  // Technology, Healthcare, etc.
+  category    String?  // Growth, Value, Dividend, etc.
+  expenseRatio Float?  // 0.03% = 0.0003
+  dividendYield Float? // 1.5% = 0.015
+  aum         Float?   // Assets Under Management
+
+  // AI Analysis
+  aiScore         Int?    // 0-100
+  aiSignal        String? // buy, hold, sell
+  aiExplanation   String? @db.Text
+  aiConfidence    String? // low, medium, high
+  aiUpdatedAt     DateTime?
+  riskLevel       String? // low, medium, high
+
+  // Relationships
+  hourlyData      HourlyETFData[]
+  portfolioItems  PortfolioItem[]
+  watchlistItems  WatchlistItem[]
+  holdings        ETFHolding[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([symbol])
+  @@index([aiScore])
+  @@index([aiSignal])
+  @@index([sector])
+}
+
+model HourlyETFData {
+  id        String   @id @default(cuid())
+  etfId     String
+  etf       ETF      @relation(fields: [etfId], references: [id], onDelete: Cascade)
+
+  // Price Data
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    BigInt
+
+  // Calculated Metrics
+  change        Float?
+  changePercent Float?
+
+  // Technical Indicators (calculated)
+  rsi          Float?
+  sma20        Float?
+  sma50        Float?
+  volatility   Float?
+
+  // Metadata
+  fetchedAt DateTime @default(now())
+
+  @@unique([etfId, fetchedAt])
+  @@index([etfId])
+  @@index([fetchedAt])
+}
+
+model ETFHolding {
+  id          String   @id @default(cuid())
+  etfId       String
+  etf         ETF      @relation(fields: [etfId], references: [id], onDelete: Cascade)
+
+  symbol      String   // AAPL, MSFT, etc.
+  name        String
+  shares      Float    // Number of shares
+  weight      Float    // Percentage of ETF
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([etfId, symbol])
+  @@index([etfId])
+}
+
+// ============================================
+// PORTFOLIO
+// ============================================
+
+model Portfolio {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items     PortfolioItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PortfolioItem {
+  id         String   @id @default(cuid())
+  portfolioId String
+  portfolio  Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  etfId      String
+  etf        ETF      @relation(fields: [etfId], references: [id], onDelete: Cascade)
+
+  shares     Float
+  avgBuyPrice Float
+  currentPrice Float?
+
+  // Calculated
+  currentValue Float?
+  profitLoss   Float?
+  profitLossPercent Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([portfolioId, etfId])
+  @@index([portfolioId])
+}
+
+// ============================================
+// WATCHLIST
+// ============================================
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String   @default("My Watchlist")
+
+  items     WatchlistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model WatchlistItem {
+  id         String   @id @default(cuid())
+  watchlistId String
+  watchlist  Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  etfId      String
+  etf        ETF      @relation(fields: [etfId], references: [id], onDelete: Cascade)
+
+  notes      String?
+
+  addedAt    DateTime @default(now())
+
+  @@unique([watchlistId, etfId])
+  @@index([watchlistId])
+}
+
+// ============================================
+// MARKET DATA FETCH LOG
+// ============================================
+
+model MarketDataFetchLog {
+  id          String   @id @default(cuid())
+
+  etfSymbols  String[] // List of symbols fetched
+
+  status      String   // success, partial, failed
+  errorMessage String?
+
+  fetchCount  Int      // Number of ETFs fetched
+  duration    Int?     // Fetch duration in ms
+
+  fetchedAt   DateTime @default(now())
+
+  @@index([fetchedAt])
+  @@index([status])
+}
+
+// ============================================
+// AI ANALYSIS LOG
+// ============================================
+
+model AIAnalysisLog {
+  id          String   @id @default(cuid())
+
+  etfId       String
+
+  provider    String   // openai, claude, xai
+  model       String   // gpt-4o-mini, claude-3.5-sonnet, etc.
+
+  inputTokens Int?
+  outputTokens Int?
+
+  prompt      String?  @db.Text
+  response    String?  @db.Text
+
+  cost        Float?   // Estimated cost in USD
+
+  createdAt   DateTime @default(now())
+
+  @@index([etfId])
+  @@index([provider])
+  @@index([createdAt])
+}
+
+// ============================================
+// CACHED MARKET DATA (30-min cache system)
+// ============================================
+
+model CachedQuote {
+  id            String   @id @default(cuid())
+  symbol        String   @unique
+
+  // Real-time quote data
+  bid           Float
+  ask           Float
+  midpoint      Float
+  previousClose Float?
+
+  // Derived metrics
+  change        Float?
+  changePercent Float?
+
+  // Metadata
+  fetchedAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@index([expiresAt])
+  @@index([symbol])
+}
+
+model CachedHistoricalData {
+  id        String   @id @default(cuid())
+  symbol    String
+  timespan  String   // 'day', 'week', 'month', etc.
+
+  // Historical bars (JSON array of OHLCV data)
+  data      Json     // Store as JSON for flexibility
+  startDate DateTime
+  endDate   DateTime
+
+  // Metadata
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([symbol, timespan, startDate])
+  @@index([symbol])
+  @@index([expiresAt])
+}
+
+model CachedTopPicks {
+  id        String   @id @default(cuid())
+
+  // Cached top picks data (full snapshot)
+  data      Json     // Array of top picks with all fields
+
+  // Metadata
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model CachedPortfolioData {
+  id        String   @id @default(cuid())
+
+  // For caching default portfolio holdings
+  symbols   String   // Array of symbols joined with commas for unique key
+  data      Json     // Cached portfolio metrics
+
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([symbols])
+  @@index([expiresAt])
+}
